@@ -1045,16 +1045,84 @@ def prediction_engine():
     def load_prediction_data():
         try:
             df = pd.read_csv("data/Cleaned Delivery Dataset.csv")
+            # df[df['City_Type'] != 'Semi-Urban']
             return df
         except FileNotFoundError:
             st.error("❌ Data file not found. Please ensure 'Cleaned Delivery Dataset.csv' exists in data folder.")
             return None
     
     data = load_prediction_data()
-    
     # Page header
     st.title("🔮 Delivery Time Prediction Engine")
     st.markdown("Predict delivery times using machine learning")
+    
+    # ======================== MODEL PERFORMANCE SECTION ========================
+    st.divider()
+    st.subheader("📊 Model Performance Metrics")
+    
+    # Performance metrics from training
+    metrics_data = {
+        'R² Score': 0.8312,
+        'Adjusted R²': 0.8293,
+        'MAE (min)': 3.0226,
+        'RMSE (min)': 3.7920,
+        'MSE': 14.3790
+    }
+    
+    # Display metrics in columns with custom styling
+    perf_col1, perf_col2, perf_col3, perf_col4, perf_col5 = st.columns(5)
+    
+    with perf_col1:
+        st.markdown(f"""
+        <div class="perf-metric">
+            <div class="perf-label">R² Score</div>
+            <div class="perf-value">{metrics_data['R² Score']:.4f}</div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with perf_col2:
+        st.markdown(f"""
+        <div class="perf-metric">
+            <div class="perf-label">Adjusted R²</div>
+            <div class="perf-value">{metrics_data['Adjusted R²']:.4f}</div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with perf_col3:
+        st.markdown(f"""
+        <div class="perf-metric">
+            <div class="perf-label">MAE (min)</div>
+            <div class="perf-value">{metrics_data['MAE (min)']:.2f}</div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with perf_col4:
+        st.markdown(f"""
+        <div class="perf-metric">
+            <div class="perf-label">RMSE (min)</div>
+            <div class="perf-value">{metrics_data['RMSE (min)']:.2f}</div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with perf_col5:
+        st.markdown(f"""
+        <div class="perf-metric">
+            <div class="perf-label">MSE</div>
+            <div class="perf-value">{metrics_data['MSE']:.2f}</div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    # Add interpretation section
+    with st.expander("📋 Metrics Explanation"):
+        st.write("""
+        - **R² Score**: Explains 83.1% of variance in delivery time (closer to 1 is better)
+        - **Adjusted R²**: R² adjusted for feature count
+        - **MAE**: Average prediction error is ±3.02 minutes
+        - **RMSE**: Root mean squared error accounts for larger errors
+        - **MSE**: Mean squared error metric
+        """)
+    
+    st.divider()
     
     # Sidebar - Information and Instructions
     with st.sidebar:
@@ -1072,63 +1140,6 @@ def prediction_engine():
         - **Features:** 30+
         - **Target:** Delivery Time (minutes)
         """)
-        
-        st.divider()
-        st.header("📈 Model Performance")
-        
-        # Performance metrics from training
-        metrics_data = {
-            'R² Score': 0.8312,
-            'Adjusted R²': 0.8293,
-            'MAE (min)': 3.0226,
-            'RMSE (min)': 3.7920,
-            'MSE': 14.3790
-        }
-        
-        col_m1, col_m2 = st.columns(2)
-        
-        with col_m1:
-            st.markdown(f"""
-            <div class="perf-metric">
-                <div class="perf-label">R² Score</div>
-                <div class="perf-value">{metrics_data['R² Score']:.4f}</div>
-            </div>
-            """, unsafe_allow_html=True)
-            st.markdown(f"""
-            <div class="perf-metric">
-                <div class="perf-label">MAE (minutes)</div>
-                <div class="perf-value">{metrics_data['MAE (min)']:.2f}</div>
-            </div>
-            """, unsafe_allow_html=True)
-            st.markdown(f"""
-            <div class="perf-metric">
-                <div class="perf-label">MSE</div>
-                <div class="perf-value">{metrics_data['MSE']:.2f}</div>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        with col_m2:
-            st.markdown(f"""
-            <div class="perf-metric">
-                <div class="perf-label">Adjusted R²</div>
-                <div class="perf-value">{metrics_data['Adjusted R²']:.4f}</div>
-            </div>
-            """, unsafe_allow_html=True)
-            st.markdown(f"""
-            <div class="perf-metric">
-                <div class="perf-label">RMSE (minutes)</div>
-                <div class="perf-value">{metrics_data['RMSE (min)']:.2f}</div>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        with st.expander("📋 Metrics Explanation"):
-            st.write("""
-            - **R² Score**: Explains 83.1% of variance in delivery time (closer to 1 is better)
-            - **Adjusted R²**: R² adjusted for feature count
-            - **MAE**: Average prediction error is ±3.02 minutes
-            - **RMSE**: Root mean squared error accounts for larger errors
-            - **MSE**: Mean squared error metric
-            """)
         
         st.divider()
         st.header("⚙️ Feature Categories")

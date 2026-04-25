@@ -122,6 +122,7 @@ All experiments and comparisons are documented in [`03_Model_Selection.ipynb`](n
 | **XGBoost** ✅ | Gradient Boosting | Highest R² & Lowest MAE | Final production model |
 | Random Forest | Ensemble | Strong baseline | Good interpretability |
 | Linear Regression | Regression | Baseline | Quick reference |
+| Artificial Neural Network | Deep Learning | Overfitting observed | High variance; required regularization but underperformed |
 
 **Model Selection Criteria:**
 - Prediction accuracy (R² Score, MAE, RMSE)

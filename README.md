@@ -64,7 +64,7 @@ Accurate delivery time prediction is critical for logistics optimization, custom
 ## 📂 Project Structure
 
 ```
-Delivery-Time-Prediction/
+Delivery-Time-Analysis-Prediction/
 │
 ├── notebooks/                          # Jupyter notebooks for analysis
 │   ├── 01_Data_Preprocessing.ipynb      # Data cleaning and preparation
@@ -81,11 +81,10 @@ Delivery-Time-Prediction/
 │   ├── Delivery Dataset.csv             # Original dataset
 │   └── Cleaned Delivery Dataset.csv     # Preprocessed dataset
 │
-├── models/                              # Saved models & pipelines
+├── models/
+|   └── pipeline.pkl                     # Saved models & pipelines
 │
 ├── requirements.txt                     # Project dependencies
-├── exporting_to_sql.ipynb              # Database export notebook
-├── hello.py                             # Utility script
 └── README.md                            # Project documentation
 ```
 

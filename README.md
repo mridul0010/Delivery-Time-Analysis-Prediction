@@ -329,6 +329,12 @@ Then open the desired notebook from the `notebooks/` folder.
 
 ---
 
+## 👩‍💻 Author
+
+<table>
+<tr>
+<td>
+
 **Mridul Lata**
 
 📍 Jaipur, India · 💼 Aspiring Data Scientist / ML Engineer

@@ -13,7 +13,7 @@ Analytics Approach
 
 **Predict delivery times with an end-to-end ML pipeline — from data preprocessing and exploratory analysis to model comparison, evaluation, and interactive deployment.**
 
-[Report Bug](https://github.com/issues) · [Request Feature](https://github.com/issues)
+[Live Demo](https://delivery-time-analysis-prediction.streamlit.app/) . [Report Bug](https://github.com/issues) · [Request Feature](https://github.com/issues)
 
 </div>
 
@@ -27,6 +27,7 @@ Analytics Approach
 - [Model Development Workflow](#-model-development-workflow)
 - [Analytics Dashboard](#-analytics-dashboard)
 - [Model Evaluation Metrics](#-model-evaluation-metrics)
+- [Screenshots](#-screenshots)
 - [Tech Stack](#%EF%B8%8F-tech-stack)
 - [Getting Started](#-getting-started)
 - [Usage](#-usage)
@@ -173,10 +174,10 @@ The final **XGBoost model** demonstrates strong performance across multiple regr
 
 | Metric | Score | Description |
 |---|---|---|
-| **R² Score** | 0.XX | Proportion of variance explained |
-| **Mean Absolute Error (MAE)** | X.XX hours | Average prediction error |
-| **Root Mean Squared Error (RMSE)** | X.XX hours | Penalizes larger errors |
-| **Mean Percentage Error (MAPE)** | X.XX% | Percentage accuracy metric |
+| **R² Score** | 0.83 | Proportion of variance explained |
+| **Adjusted R² Score** | 0.82 | Adjusted for number of features (penalizes unnecessary variables) |
+| **Mean Absolute Error (MAE)** | 3.02 minutes | Average prediction error |
+| **Root Mean Squared Error (RMSE)** | 3.79 minutes | Penalizes larger errors |
 
 ### Model Performance Dashboard (In-App)
 
@@ -186,6 +187,29 @@ The **Model Performance** page visualizes evaluation outputs:
 - Residual plots to assess prediction errors
 - Model performance metrics and statistics
 - Feature importance rankings
+
+---
+## 📸 Screenshots
+
+<details>
+<summary>Click to expand screenshots</summary>
+
+<img width="1909" height="1077" alt="image" src="https://github.com/user-attachments/assets/c8a0493d-f54a-480d-93bb-f1be9110ded7" />
+<img width="1614" height="876" alt="image" src="https://github.com/user-attachments/assets/48954c0a-9ed6-454f-810c-83d8508930eb" />
+<img width="1595" height="1026" alt="image" src="https://github.com/user-attachments/assets/4f22bc70-b2fc-41a3-b6ad-64cbe6085ced" />
+<img width="1619" height="1038" alt="image" src="https://github.com/user-attachments/assets/752f7ed2-7212-43cd-96de-69acc7f5350f" />
+<img width="1919" height="948" alt="image" src="https://github.com/user-attachments/assets/36ce6920-450a-451f-ae86-3d722fbd0d88" />
+<img width="1833" height="1025" alt="image" src="https://github.com/user-attachments/assets/6ebf66d5-e638-4075-b3b4-20b3fbbca40a" />
+<img width="1846" height="949" alt="image" src="https://github.com/user-attachments/assets/73b22d53-fcfa-4e9a-a036-cd6b8b1a0242" />
+
+
+
+
+
+
+
+
+</details>
 
 ---
 
@@ -199,6 +223,7 @@ The **Model Performance** page visualizes evaluation outputs:
 | **Visualization** | Matplotlib, Seaborn, Plotly |
 | **Deployment** | Streamlit |
 | **Development** | Jupyter Notebook |
+
 
 ---
 

@@ -329,6 +329,25 @@ Then open the desired notebook from the `notebooks/` folder.
 
 ---
 
+**Mridul Lata**
+
+📍 Jaipur, India · 💼 Aspiring Data Scientist / ML Engineer
+
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-0A66C2?logo=linkedin&logoColor=white)](https://www.linkedin.com/in/mridullata)
+[![GitHub](https://img.shields.io/badge/GitHub-Follow-181717?logo=github&logoColor=white)](https://github.com/mridul0010)
+
+</td>
+</tr>
+</table>
+
+---
+
+## 📄 License
+
+Distributed under the **MIT License**. See [`LICENSE`](LICENSE) for more information.
+
+---
+
 <div align="center">
 
 📌 _This project focuses on real-world ML decision-making and production-ready solutions._

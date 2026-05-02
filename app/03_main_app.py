@@ -3,12 +3,6 @@ import pandas as pd
 import numpy as np
 import pickle
 from datetime import datetime
-from sklearn.metrics import (
-    mean_squared_error,
-    mean_absolute_error,
-    root_mean_squared_error,
-    r2_score
-)
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
@@ -73,6 +67,17 @@ st.markdown("""
 
 # ======================== HELPER FUNCTIONS ========================
 
+def haversine(lat1, lon1, lat2, lon2):
+    """Calculate distance using haversine formula."""
+    R = 6371  # Earth radius (km)
+    lat1, lon1, lat2, lon2 = map(np.radians, [lat1, lon1, lat2, lon2])
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+    a = np.sin(dlat/2)**2 + np.cos(lat1) * np.cos(lat2) * np.sin(dlon/2)**2
+    c = 2 * np.arcsin(np.sqrt(a))
+    return R * c
+
+
 def engineer_features(df):
     """Apply feature engineering from EDA notebook."""
     df = df.copy()
@@ -80,6 +85,21 @@ def engineer_features(df):
     # DateTime conversions
     df['Order_Datetime'] = pd.to_datetime(df['Order_Datetime'])
     df['Pickup_Datetime'] = pd.to_datetime(df['Pickup_Datetime'])
+    
+    # Distance calculation
+    distance_km = haversine(
+        df["Restaurant_latitude"],
+        df["Restaurant_longitude"],
+        df["Delivery_location_latitude"],
+        df["Delivery_location_longitude"]
+    )
+    df["distance_km"] = distance_km
+    
+    # Direction calculation
+    lat_diff = df["Delivery_location_latitude"] - df["Restaurant_latitude"]
+    lon_diff = df["Delivery_location_longitude"] - df["Restaurant_longitude"]
+    direction = np.arctan2(lat_diff, lon_diff)
+    df["direction_rad"] = direction
     
     # Distance groups
     distance_group = pd.cut(
@@ -134,12 +154,82 @@ def engineer_features(df):
     return df
 
 
+# ======================== FEATURE ENGINEERING CLASS ========================
+
+class FeatureEngineering(BaseEstimator, TransformerMixin):
+    
+    def __init__(self):
+        self.rating_bins = None
+
+    def fit(self, X, y=None):
+        X = X.copy()
+        self.rating_bins = pd.qcut(
+            X['Delivery_person_Ratings'],
+            q=3,
+            retbins=True,
+            duplicates='drop'
+        )[1]
+        return self
+
+    def transform(self, X):
+        X = X.copy()
+        X['Order_Datetime'] = pd.to_datetime(X['Order_Datetime'], errors='coerce')
+        X['Pickup_Datetime'] = pd.to_datetime(X['Pickup_Datetime'], errors='coerce')
+
+        X["distance_km"] = haversine(
+            X["Restaurant_latitude"],
+            X["Restaurant_longitude"],
+            X["Delivery_location_latitude"],
+            X["Delivery_location_longitude"]
+        )
+
+        X["delivery_rating_group"] = pd.cut(
+            X['Delivery_person_Ratings'],
+            bins=self.rating_bins,
+            labels=['Low', 'Medium', 'High'],
+            include_lowest=True
+        )
+
+        X["age_group"] = pd.cut(
+            X['Delivery_person_Age'],
+            bins=[14, 25, 35, 60],
+            labels=['Young', 'Adult', 'Senior']
+        )
+
+        X["distance_group"] = pd.cut(
+            X['distance_km'],
+            bins=[0, 5, 10, 25],
+            labels=['Short Distance', 'Medium Distance', 'Long Distance']
+        )
+
+        X['Prep_Time(min)'] = (
+            X['Pickup_Datetime'] - X['Order_Datetime']
+        ).dt.total_seconds() / 60
+
+        X['Order_hour'] = X['Order_Datetime'].dt.hour
+        X['Order_day'] = X['Order_Datetime'].dt.day_name()
+        X['isWeekend'] = X['Order_day'].isin(["Saturday", "Sunday"]).astype(int)
+
+        X['Time_Of_Day'] = pd.cut(
+            X['Order_hour'],
+            bins=[0, 6, 12, 18, 24],
+            labels=["Night", "Morning", "Afternoon", "Evening"],
+            include_lowest=True
+        )
+
+        X = X.drop(columns=['Order_Datetime', 'Pickup_Datetime'], errors='ignore')
+        return X
+
+    def get_feature_names_out(self, input_features=None):
+        return input_features
+
+
 # ======================== DATA LOADING ========================
 
 @st.cache_data
 def load_and_preprocess():
     """Load and preprocess delivery dataset."""
-    df = pd.read_csv("data/Final Delivery Dataset.csv")
+    df = pd.read_csv("data/Cleaned Delivery Dataset.csv")
     df = engineer_features(df)
     return df
 
@@ -954,11 +1044,11 @@ def prediction_engine():
     @st.cache_data
     def load_prediction_data():
         try:
-            df = pd.read_csv("data/Final Delivery Dataset.csv")
-            df = df[df['City_Type'] != 'Semi-Urban']
+            df = pd.read_csv("data/Cleaned Delivery Dataset.csv")
+            # df[df['City_Type'] != 'Semi-Urban']
             return df
         except FileNotFoundError:
-            st.error("❌ Data file not found. Please ensure 'Final Delivery Dataset.csv' exists in data folder.")
+            st.error("❌ Data file not found. Please ensure 'Cleaned Delivery Dataset.csv' exists in data folder.")
             return None
     
     data = load_prediction_data()
@@ -970,74 +1060,14 @@ def prediction_engine():
     st.divider()
     st.subheader("📊 Model Performance Metrics")
     
-    def adjusted_r2(r2 , n , p):
-        nume = (1-r2)*(n-1)
-        deno = n-p-1
-        return 1-(nume/deno)
-
-    # Calculate performance metrics dynamically from model
-    @st.cache_data
-    def calculate_model_metrics():
-        """Calculate actual model performance metrics using test data"""
-        try:
-            # Try to load test data if available
-            import pickle
-            metrics_file = "models/metrics.pkl"
-            
-            try:
-                with open(metrics_file, "rb") as f:
-                    saved_metrics = pickle.load(f)
-                    return saved_metrics
-            except FileNotFoundError:
-                # If no saved metrics, calculate on test data
-                test_data_file = "models/test_data.pkl"
-                try:
-                    with open(test_data_file, "rb") as f:
-                        test_data = pickle.load(f)
-                        y_test = test_data['y_test']
-                        X_test = test_data['X_test']
-                        
-                        # Make predictions on test data
-                        y_pred = pipeline.predict(X_test)
-                        
-                        # Calculate metrics
-                        r2 = r2_score(y_test, y_pred)*100
-                        mae = mean_absolute_error(y_test, y_pred)
-                        rmse = root_mean_squared_error(y_test, y_pred)
-                        mse = mean_squared_error(y_test, y_pred)
-                        
-                        n_samples = len(y_test)
-                        n_features = X_test.shape[1] if hasattr(X_test, 'shape') else len(X_test.columns)
-                        adj_r2 = adjusted_r2(r2, n_samples, n_features)*100
-                        
-                        return {
-                            'R² Score': r2,
-                            'Adjusted R²': adj_r2,
-                            'MAE (min)': mae,
-                            'RMSE (min)': rmse,
-                            'MSE': mse
-                        }
-                except FileNotFoundError:
-                    # Fallback to default values if no test data
-                    return {
-                        'R² Score': 83.12,
-                        'Adjusted R²': 82.93,
-                        'MAE (min)': 3.0226,
-                        'RMSE (min)': 3.7920,
-                        'MSE': 14.3790
-                    }
-        except Exception as e:
-            st.warning(f"Could not load metrics: {str(e)}. Using default values.")
-            return {
-                'R² Score': 0.8312,
-                'Adjusted R²': 0.8293,
-                'MAE (min)': 3.0226,
-                'RMSE (min)': 3.7920,
-                'MSE': 14.3790
-            }
-    
-    # Get metrics data
-    metrics_data = calculate_model_metrics()
+    # Performance metrics from training
+    metrics_data = {
+        'R² Score': 0.8312,
+        'Adjusted R²': 0.8293,
+        'MAE (min)': 3.0226,
+        'RMSE (min)': 3.7920,
+        'MSE': 14.3790
+    }
     
     # Display metrics in columns with custom styling
     perf_col1, perf_col2, perf_col3, perf_col4, perf_col5 = st.columns(5)
@@ -1146,7 +1176,15 @@ def prediction_engine():
         # Right column - Location Details
         with col2:
             st.subheader("📍 Location")
-            total_distance = st.number_input("Total Distance (km)", min_value=0.1, max_value=100.0, value=5.0, step=0.1, key="pred_distance")
+            col2a, col2b = st.columns(2)
+            with col2a:
+                st.write("Restaurant Coordinates")
+                rest_lat = st.number_input("Restaurant Latitude", -90.0, 90.0, 12.971234, key="pred_rest_lat", format="%.6f")
+                rest_lon = st.number_input("Restaurant Longitude", -180.0, 180.0, 77.712312, key="pred_rest_lon", format="%.6f")
+            with col2b:
+                st.write("Delivery Location Coordinates")
+                delivery_lat = st.number_input("Delivery Latitude", -90.0, 90.0, 12.962345, key="pred_del_lat", format="%.6f")
+                delivery_lon = st.number_input("Delivery Longitude", -180.0, 180.0, 77.682456, key="pred_del_lon", format="%.6f")
         
         # Order and Vehicle Details
         st.subheader("🛵 Order & Vehicle Details")
@@ -1188,8 +1226,8 @@ def prediction_engine():
         if st.button("🔮 Predict Delivery Time", use_container_width=True, type="primary"):
             try:
                 # Input validation
-                if total_distance <= 0:
-                    st.warning("⚠️ Please enter a valid distance value.")
+                if delivery_lat == rest_lat and delivery_lon == rest_lon:
+                    st.warning("⚠️ Delivery location is same as restaurant. Please update coordinates.")
                     st.stop()
                 
                 # Create input DataFrame with all required columns
@@ -1197,7 +1235,10 @@ def prediction_engine():
                     'Delivery_person_Age': [delivery_age],
                     'Delivery_person_Ratings': [delivery_rating],
                     'multiple_deliveries': [multiple_deliveries],
-                    'distance_km': [total_distance],
+                    'Restaurant_latitude': [rest_lat],
+                    'Restaurant_longitude': [rest_lon],
+                    'Delivery_location_latitude': [delivery_lat],
+                    'Delivery_location_longitude': [delivery_lon],
                     'City': [city],
                     'Zone': [zone],
                     'Weather_conditions': [weather],
@@ -1214,8 +1255,8 @@ def prediction_engine():
                 # Make prediction
                 prediction = pipeline.predict(input_data)[0]
                 
-                # Use the input distance directly
-                distance = total_distance
+                # Calculate distance
+                distance = haversine(rest_lat, rest_lon, delivery_lat, delivery_lon)
                 
                 # Calculate delivery time
                 delivery_time = order_datetime + pd.Timedelta(minutes=float(prediction))
@@ -1317,14 +1358,12 @@ def prediction_engine():
                 conf_col1, conf_col2 = st.columns(2)
                 
                 with conf_col1:
-                    # Use actual R² score from metrics
-                    confidence_percentage = metrics_data['R² Score'] * 100
+                    confidence_percentage = 83.12  # Based on R² score
                     st.progress(confidence_percentage / 100, text=f"Model Accuracy: {confidence_percentage:.1f}%")
-                    st.caption("Based on R² Score from test data")
+                    st.caption("Based on R² Score from training data")
                 
                 with conf_col2:
-                    # Use actual RMSE from metrics
-                    margin_of_error = metrics_data['RMSE (min)']
+                    margin_of_error = 3.79  # RMSE
                     st.info(f"""
                     **Expected Margin of Error: ±{margin_of_error:.1f} minutes**
                     
@@ -1345,15 +1384,15 @@ def prediction_engine():
                                 'Order', 'Order', 'Order', 
                                 'Conditions', 'Conditions', 'Conditions'],
                     'Attribute': ['Age', 'Rating', 'Multiple Deliveries',
-                                 'Distance', 'City', 'Zone',
+                                 'Distance', 'From', 'To',
                                  'Type', 'Time', 'Day',
                                  'Traffic', 'Weather', 'Vehicle'],
                     'Value': [f"{delivery_age} years", 
                              f"⭐ {delivery_rating}/5.0", 
                              f"{multiple_deliveries}",
                              f"{distance:.2f} km",
-                             city,
-                             zone,
+                             f"{rest_lat:.4f}, {rest_lon:.4f}",
+                             f"{delivery_lat:.4f}, {delivery_lon:.4f}",
                              order_type,
                              order_datetime.strftime('%I:%M %p'),
                              order_day,
@@ -1397,8 +1436,8 @@ ORDER DETAILS:
 - Festival: {festival}
 
 MODEL ACCURACY:
-- R² Score: {metrics_data['R² Score']*100:.2f}%
-- Expected Error Margin: ±{metrics_data['RMSE (min)']:.2f} minutes
+- R² Score: 83.12%
+- Expected Error Margin: ±3.79 minutes
 - Confidence Level: High
 
 IMPORTANT NOTE:
@@ -1429,7 +1468,7 @@ The prediction is based on historical data and may vary due to:
         if pipeline is None:
             st.error("❌ Unable to load the model. Please ensure 'pipeline.pkl' is in the app directory.")
         if data is None:
-            st.error("❌ Unable to load the data. Please ensure 'Final Delivery Dataset.csv' exists in the data folder.")
+            st.error("❌ Unable to load the data. Please ensure 'Cleaned Delivery Dataset.csv' exists in the data folder.")
 
 
 # ======================== RUN MAIN APP ========================

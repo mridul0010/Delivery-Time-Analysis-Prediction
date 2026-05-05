@@ -298,7 +298,7 @@ def analytics_dashboard():
     n = len(fdf)
 
     # ======================== HEADER ========================
-    st.title("🚚 Delivery Time Prediction — Analytics Dashboard")
+    st.title("🚚 Delivery Time Analytics Dashboard")
     st.caption("Interactive dashboard analyzing delivery performance factors")
 
     # ======================== KPI CARDS ========================

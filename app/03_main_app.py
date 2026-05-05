@@ -251,10 +251,6 @@ def analytics_dashboard():
     # Load data
     df = load_and_preprocess()
     
-    # Page header
-    st.title("📊 Delivery Time Analytics Dashboard")
-    st.caption("Interactive dashboard analyzing delivery performance factors")
-    
     # ======================== SIDEBAR FILTERS ========================
     st.sidebar.header("🔎 Filters")
 

@@ -193,7 +193,7 @@ The **Model Performance** page visualizes evaluation outputs:
 <details>
 <summary>Click to expand screenshots</summary>
 
-<img width="1919" height="1079" alt="image" src="https://github.com/user-attachments/assets/2b1fc866-d0dc-4b0d-9691-a7af5f8bc8b3" />
+<img width="1919" height="1079" alt="image" src="https://github.com/user-attachments/assets/9f61949c-bc13-42e9-889d-cf7a155d71b3" />
 <img width="1614" height="876" alt="image" src="https://github.com/user-attachments/assets/48954c0a-9ed6-454f-810c-83d8508930eb" />
 <img width="1595" height="1026" alt="image" src="https://github.com/user-attachments/assets/4f22bc70-b2fc-41a3-b6ad-64cbe6085ced" />
 <img width="1619" height="1038" alt="image" src="https://github.com/user-attachments/assets/752f7ed2-7212-43cd-96de-69acc7f5350f" />

@@ -67,16 +67,6 @@ st.markdown("""
 
 # ======================== HELPER FUNCTIONS ========================
 
-def haversine(lat1, lon1, lat2, lon2):
-    """Calculate distance using haversine formula."""
-    R = 6371  # Earth radius (km)
-    lat1, lon1, lat2, lon2 = map(np.radians, [lat1, lon1, lat2, lon2])
-    dlat = lat2 - lat1
-    dlon = lon2 - lon1
-    a = np.sin(dlat/2)**2 + np.cos(lat1) * np.cos(lat2) * np.sin(dlon/2)**2
-    c = 2 * np.arcsin(np.sqrt(a))
-    return R * c
-
 
 def engineer_features(df):
     """Apply feature engineering from EDA notebook."""
@@ -86,25 +76,15 @@ def engineer_features(df):
     df['Order_Datetime'] = pd.to_datetime(df['Order_Datetime'])
     df['Pickup_Datetime'] = pd.to_datetime(df['Pickup_Datetime'])
     
-    # Distance calculation
-    distance_km = haversine(
-        df["Restaurant_latitude"],
-        df["Restaurant_longitude"],
-        df["Delivery_location_latitude"],
-        df["Delivery_location_longitude"]
-    )
-    df["distance_km"] = distance_km
-    
-    # Direction calculation
-    lat_diff = df["Delivery_location_latitude"] - df["Restaurant_latitude"]
-    lon_diff = df["Delivery_location_longitude"] - df["Restaurant_longitude"]
-    direction = np.arctan2(lat_diff, lon_diff)
-    df["direction_rad"] = direction
+    # Distance is already in the dataset
+    # Ensure distance_km column exists
+    if 'distance_km' not in df.columns:
+        df['distance_km'] = df.get('distance_km', 0)
     
     # Distance groups
     distance_group = pd.cut(
         df['distance_km'],
-        bins=[0, 5, 10, 25],
+        bins=[0, 5, 10, 21],
         labels=['Short Distance', 'Median Distance', 'Long Distance']
     )
     df["Distance_Group"] = distance_group
@@ -126,7 +106,7 @@ def engineer_features(df):
     )
     
     # Remove Semi-Urban (unrealistic patterns)
-    df = df[df['City_Type'] != "Semi-Urban"]
+    # df = df[df['City_Type'] != "Semi-Urban"]
     
     # Rating groups (from Delivery_person_Ratings)
     if 'Delivery_person_Ratings' in df.columns:
@@ -176,12 +156,10 @@ class FeatureEngineering(BaseEstimator, TransformerMixin):
         X['Order_Datetime'] = pd.to_datetime(X['Order_Datetime'], errors='coerce')
         X['Pickup_Datetime'] = pd.to_datetime(X['Pickup_Datetime'], errors='coerce')
 
-        X["distance_km"] = haversine(
-            X["Restaurant_latitude"],
-            X["Restaurant_longitude"],
-            X["Delivery_location_latitude"],
-            X["Delivery_location_longitude"]
-        )
+        # Distance is already provided in the dataset
+        # Just ensure it exists
+        if 'distance_km' not in X.columns:
+            X['distance_km'] = 0
 
         X["delivery_rating_group"] = pd.cut(
             X['Delivery_person_Ratings'],
@@ -198,8 +176,9 @@ class FeatureEngineering(BaseEstimator, TransformerMixin):
 
         X["distance_group"] = pd.cut(
             X['distance_km'],
-            bins=[0, 5, 10, 25],
-            labels=['Short Distance', 'Medium Distance', 'Long Distance']
+            bins=[0, 5, 10, 21],
+            labels=['Short Distance', 'Medium Distance',
+                'Long Distance']
         )
 
         X['Prep_Time(min)'] = (
@@ -217,7 +196,10 @@ class FeatureEngineering(BaseEstimator, TransformerMixin):
             include_lowest=True
         )
 
-        X = X.drop(columns=['Order_Datetime', 'Pickup_Datetime'], errors='ignore')
+        # Remove coordinate columns as they are no longer needed
+        X = X.drop(columns=['Order_Datetime', 'Pickup_Datetime', 'Restaurant_latitude', 
+                           'Restaurant_longitude', 'Delivery_location_latitude', 
+                           'Delivery_location_longitude'], errors='ignore')
         return X
 
     def get_feature_names_out(self, input_features=None):
@@ -228,7 +210,7 @@ class FeatureEngineering(BaseEstimator, TransformerMixin):
 
 @st.cache_data
 def load_and_preprocess():
-    """Load and preprocess delivery dataset."""
+    """Load and preprocess delivery dataset for analytics phase."""
     df = pd.read_csv("data/Cleaned Delivery Dataset.csv")
     df = engineer_features(df)
     return df
@@ -496,7 +478,7 @@ def analytics_dashboard():
         **📏 Insight:** Distance strongly correlates with delivery time:
         - Short Distance (0-5 km): ~15-25 min
         - Median Distance (5-10 km): ~20-30 min
-        - Long Distance (10-25 km): ~25-40 min
+        - Long Distance (10-21 km): ~25-40 min
         
         As distance increases, delivery time increases proportionally.
         """)
@@ -1044,11 +1026,11 @@ def prediction_engine():
     @st.cache_data
     def load_prediction_data():
         try:
-            df = pd.read_csv("data/Cleaned Delivery Dataset.csv")
-            # df[df['City_Type'] != 'Semi-Urban']
-            return df
+                df = pd.read_csv("data/Final Delivery Dataset.csv")
+                # df[df['City_Type'] != 'Semi-Urban']
+                return df
         except FileNotFoundError:
-            st.error("❌ Data file not found. Please ensure 'Cleaned Delivery Dataset.csv' exists in data folder.")
+            st.error("❌ Data file not found. Please ensure 'Final Delivery Dataset.csv' exists in data folder.")
             return None
     
     data = load_prediction_data()
@@ -1173,18 +1155,10 @@ def prediction_engine():
             delivery_rating = st.slider("Rating (1-5)", 1.0, 5.0, 4.5, key="pred_rating")
             multiple_deliveries = st.number_input("Multiple Deliveries Count", 0, 10, 1, key="pred_multi_del")
         
-        # Right column - Location Details
+        # Right column - Distance Details
         with col2:
-            st.subheader("📍 Location")
-            col2a, col2b = st.columns(2)
-            with col2a:
-                st.write("Restaurant Coordinates")
-                rest_lat = st.number_input("Restaurant Latitude", -90.0, 90.0, 12.971234, key="pred_rest_lat", format="%.6f")
-                rest_lon = st.number_input("Restaurant Longitude", -180.0, 180.0, 77.712312, key="pred_rest_lon", format="%.6f")
-            with col2b:
-                st.write("Delivery Location Coordinates")
-                delivery_lat = st.number_input("Delivery Latitude", -90.0, 90.0, 12.962345, key="pred_del_lat", format="%.6f")
-                delivery_lon = st.number_input("Delivery Longitude", -180.0, 180.0, 77.682456, key="pred_del_lon", format="%.6f")
+            st.subheader("📍 Distance")
+            distance_km = st.slider("Total Distance (km)", 0.0, 22.0, 10.0, step=0.5, key="pred_distance")
         
         # Order and Vehicle Details
         st.subheader("🛵 Order & Vehicle Details")
@@ -1226,8 +1200,8 @@ def prediction_engine():
         if st.button("🔮 Predict Delivery Time", use_container_width=True, type="primary"):
             try:
                 # Input validation
-                if delivery_lat == rest_lat and delivery_lon == rest_lon:
-                    st.warning("⚠️ Delivery location is same as restaurant. Please update coordinates.")
+                if distance_km <= 0:
+                    st.warning("⚠️ Distance must be greater than 0. Please update the distance value.")
                     st.stop()
                 
                 # Create input DataFrame with all required columns
@@ -1235,10 +1209,7 @@ def prediction_engine():
                     'Delivery_person_Age': [delivery_age],
                     'Delivery_person_Ratings': [delivery_rating],
                     'multiple_deliveries': [multiple_deliveries],
-                    'Restaurant_latitude': [rest_lat],
-                    'Restaurant_longitude': [rest_lon],
-                    'Delivery_location_latitude': [delivery_lat],
-                    'Delivery_location_longitude': [delivery_lon],
+                    'distance_km': [distance_km],
                     'City': [city],
                     'Zone': [zone],
                     'Weather_conditions': [weather],
@@ -1249,14 +1220,11 @@ def prediction_engine():
                     'Vehicle_condition': [vehicle_condition],
                     'Festival': [festival],
                     'Order_Datetime': [order_datetime],
-                    'Pickup_Datetime': [order_datetime + pd.Timedelta(minutes=15)]
+                    'Pickup_Datetime': [order_datetime + pd.Timedelta(minutes=15)],
                 })
                 
                 # Make prediction
                 prediction = pipeline.predict(input_data)[0]
-                
-                # Calculate distance
-                distance = haversine(rest_lat, rest_lon, delivery_lat, delivery_lon)
                 
                 # Calculate delivery time
                 delivery_time = order_datetime + pd.Timedelta(minutes=float(prediction))
@@ -1282,13 +1250,13 @@ def prediction_engine():
                     st.metric("Expected Delivery", delivery_time.strftime("%H:%M"))
                 
                 with col_res3:
-                    st.metric("Distance", f"{distance:.1f} km")
+                    st.metric("Distance", f"{distance_km:.1f} km")
                 
                 with col_res4:
                     # Estimate cost/priority based on distance and time
-                    if distance < 5 and prediction < 20:
+                    if distance_km < 5 and prediction < 20:
                         priority = "🟢 Fast"
-                    elif distance < 10 and prediction < 30:
+                    elif distance_km < 10 and prediction < 30:
                         priority = "🟡 Medium"
                     else:
                         priority = "🔴 Slow"
@@ -1304,8 +1272,8 @@ def prediction_engine():
                 with detail_col1:
                     st.info(f"""
                     **📍 Route Information**
-                    - Distance: {distance:.2f} km
-                    - Estimated Speed: {(distance*60/prediction):.1f} km/h
+                    - Distance: {distance_km:.2f} km
+                    - Estimated Speed: {(distance_km*60/prediction):.1f} km/h
                     - Time of Day: {order_datetime.strftime('%I:%M %p')}
                     - Day: {order_day}
                     """)
@@ -1380,19 +1348,18 @@ def prediction_engine():
                 
                 summary_data = {
                     'Category': ['Delivery Person', 'Delivery Person', 'Delivery Person', 
-                                'Route', 'Route', 'Route', 
+                                'Route', 'Route', 
                                 'Order', 'Order', 'Order', 
                                 'Conditions', 'Conditions', 'Conditions'],
                     'Attribute': ['Age', 'Rating', 'Multiple Deliveries',
-                                 'Distance', 'From', 'To',
+                                 'Distance', 'Zone',
                                  'Type', 'Time', 'Day',
                                  'Traffic', 'Weather', 'Vehicle'],
                     'Value': [f"{delivery_age} years", 
                              f"⭐ {delivery_rating}/5.0", 
                              f"{multiple_deliveries}",
-                             f"{distance:.2f} km",
-                             f"{rest_lat:.4f}, {rest_lon:.4f}",
-                             f"{delivery_lat:.4f}, {delivery_lon:.4f}",
+                             f"{distance_km:.2f} km",
+                             zone,
                              order_type,
                              order_datetime.strftime('%I:%M %p'),
                              order_day,
@@ -1414,8 +1381,8 @@ ESTIMATED DELIVERY TIME: {prediction:.1f} minutes
 
 KEY INFORMATION:
 - Expected Delivery: {delivery_time.strftime('%I:%M %p on %A')}
-- Distance: {distance:.2f} km
-- Estimated Speed: {(distance*60/prediction):.1f} km/h
+- Distance: {distance_km:.2f} km
+- Estimated Speed: {(distance_km*60/prediction):.1f} km/h
 
 DELIVERY PERSON:
 - Age: {delivery_age} years
@@ -1461,14 +1428,14 @@ The prediction is based on historical data and may vary due to:
                 st.info("""
                 **Troubleshooting Tips:**
                 - Ensure all fields are filled correctly
-                - Check latitude/longitude values are within valid ranges
+                - Check distance value is within valid ranges (0-100 km)
                 - Verify model file 'pipeline.pkl' exists in the directory
                 """)
     else:
         if pipeline is None:
             st.error("❌ Unable to load the model. Please ensure 'pipeline.pkl' is in the app directory.")
         if data is None:
-            st.error("❌ Unable to load the data. Please ensure 'Cleaned Delivery Dataset.csv' exists in the data folder.")
+            st.error("❌ Unable to load the data. Please ensure 'Final Delivery Dataset.csv' exists in the data folder.")
 
 
 # ======================== RUN MAIN APP ========================

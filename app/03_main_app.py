@@ -170,7 +170,7 @@ class FeatureEngineering(BaseEstimator, TransformerMixin):
 
         X["age_group"] = pd.cut(
             X['Delivery_person_Age'],
-            bins=[14, 25, 35, 60],
+            bins=[14, 25, 35, 50],
             labels=['Young', 'Adult', 'Senior']
         )
 
@@ -1147,7 +1147,7 @@ def prediction_engine():
         # Left column - Delivery Person Details
         with col1:
             st.subheader("👤 Delivery Person")
-            delivery_age = st.slider("Age", 18, 60, 30, key="pred_age")
+            delivery_age = st.slider("Age", age, key="pred_age")
             delivery_rating = st.slider("Rating (1-5)", 1.0, 5.0, 4.5, key="pred_rating")
             multiple_deliveries = st.number_input("Multiple Deliveries Count", 0, 10, 1, key="pred_multi_del")
         

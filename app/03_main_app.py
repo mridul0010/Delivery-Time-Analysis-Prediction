@@ -298,7 +298,7 @@ def analytics_dashboard():
     n = len(fdf)
 
     # ======================== HEADER ========================
-    st.title("🚚 Delivery Time Analytics Dashboard")
+    st.title("🚚 Delivery Time Prediction — Analytics Dashboard")
     st.caption("Interactive dashboard analyzing delivery performance factors")
 
     # ======================== KPI CARDS ========================
@@ -1121,7 +1121,7 @@ def prediction_engine():
         
         st.divider()
         st.header("⚙️ Feature Categories")
-        with st.expander("Delivery Person"):
+        with st.expander("Delivery Person"): 
             st.write("Age, Ratings, Multiple Deliveries")
         with st.expander("Location"):
             st.write("Restaurant & Delivery Coordinates")
@@ -1147,7 +1147,7 @@ def prediction_engine():
         # Left column - Delivery Person Details
         with col1:
             st.subheader("👤 Delivery Person")
-            delivery_age = st.slider("Age", age, key="pred_age")
+            delivery_age = st.slider("Age", 18, 50, 30, key="pred_age")
             delivery_rating = st.slider("Rating (1-5)", 1.0, 5.0, 4.5, key="pred_rating")
             multiple_deliveries = st.number_input("Multiple Deliveries Count", 0, 10, 1, key="pred_multi_del")
         
